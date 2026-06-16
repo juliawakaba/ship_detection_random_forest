@@ -1,0 +1,5 @@
+data_store/*
+!data_store/.gitkeep
+.ipynb_checkpoints/
+__marimo__
+__pycache__/

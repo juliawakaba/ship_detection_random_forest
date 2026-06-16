@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ViewSttngs general-node="general-settings" layer-node="layer-settings">
+	<general-settings NumView="1" NumLvl="1">
+		<ChldFrm Mode="0" LayoutType="3" Cols="1" Rows="1" PosX="872" PosY="922" bCrossHair="1">
+			<SyncData>
+				<SyncGroup id="1" SliceX="0" SliceY="0" SliceZ="0" nShot="0" Map="main"></SyncGroup>
+			</SyncData>
+			<Pane row="0" col="0" view_type="1"></Pane>
+		</ChldFrm>
+		<CDIAClientDcmt0 ShowScalMark="0" ShowHeatMap="0" ShowScalMarkGlbl="0" ShowPanWndGlbl="0" ActlScalMark="1" MapName="main" MapIdx="0" SyncGroup="1" RndrType="0"></CDIAClientDcmt0>
+	</general-settings>
+	<layer-settings NumView="1" NumLvl="1">
+		<CDIAClientDcmt0>
+			<RndrRect ScnX0="0" ScnY0="0" Zoom="8.3300000000000026800783814451278885826e-002" nSceneSX="10000" nSceneSY="10000"></RndrRect>
+			<RndrSttng Pixels="1" DisplImage="0" LayrMode="Image Data" ElevMode="-auto-" dElevation="0." bDrawSER="0" bDrawElpt="0" bDrawEV="0" bDrawSklt="0" bDrawText="1" bDrawHeatMap="0" sPolyViewLyr="" SavedOrient="0">
+				<RndrVctrMix HideAllVectorLayers="0"></RndrVctrMix>
+				<RndrObjLvlMix HideAllObjLvlLayers="0" HideAllClasses="0" ShowOutlines="1" ShowFill="1" OutlineMode="Outlines" UnclassifiedColor="-1" RenderMode="0" VctrMode="Outlines">
+					<layer level-name="New Level" show="1" outline-color="16711680" fill-color="-1" alpha="0.29999999999999998889776975374843459576" thickness="1"></layer>
+					<Classes></Classes>
+				</RndrObjLvlMix>
+				<RndrROIMix HideAllROIs="0"></RndrROIMix>
+				<RndrPointCloudMix HideAllPoints="0" Orthographic="0" cBackgroundColor="0" eMixType="2" iPointSize="1" iCubeEdgeThickness="1" iCubeHandleSize="1">
+					<Layers></Layers>
+					<Classes></Classes>
+				</RndrPointCloudMix>
+				<TopLeft eFontType="0" crText="16777215" strText="" iFontSize="10"></TopLeft>
+				<TopCenter eFontType="0" crText="16777215" strText="" iFontSize="10"></TopCenter>
+				<LeftCenter eFontType="0" crText="16777215" strText="" iFontSize="10"></LeftCenter>
+				<TopRight eFontType="0" crText="16777215" strText="" iFontSize="10"></TopRight>
+				<BottomLeft eFontType="0" crText="16777215" strText="" iFontSize="10"></BottomLeft>
+				<BottomCenter eFontType="0" crText="16777215" strText="" iFontSize="10"></BottomCenter>
+				<RightCenter eFontType="0" crText="16777215" strText="" iFontSize="10"></RightCenter>
+				<BottomRight eFontType="0" crText="16777215" strText="&lt;&lt;DEFAULT>>" iFontSize="10"></BottomRight>
+			</RndrSttng>
+			<RndrCMix ScalMode="none" ScalSDev="2." ScalLSat="1.0000000000000000208166817117216851329e-002" ScalGamma="0.5" MixType="5" bUseIgnoreRange="0" dIgnoreRangeMin="0." dIgnoreRangeMax="0." num_chnl="3">
+				<wght0>
+					<Layer Index="0" Name="Layer 1" Value="1"></Layer>
+					<Layer Index="1" Name="Layer 2" Value="0"></Layer>
+					<Layer Index="2" Name="Layer 3" Value="0"></Layer>
+				</wght0>
+				<wght1>
+					<Layer Index="0" Name="Layer 1" Value="0"></Layer>
+					<Layer Index="1" Name="Layer 2" Value="1"></Layer>
+					<Layer Index="2" Name="Layer 3" Value="0"></Layer>
+				</wght1>
+				<wght2>
+					<Layer Index="0" Name="Layer 1" Value="0"></Layer>
+					<Layer Index="1" Name="Layer 2" Value="0"></Layer>
+					<Layer Index="2" Name="Layer 3" Value="1"></Layer>
+				</wght2>
+				<ScalEqua>
+					<EquaItem EquaChnl="0" EquaMode="1" EquaMin="0." EquaMax="255." EquaInit="0"></EquaItem>
+					<EquaItem EquaChnl="1" EquaMode="1" EquaMin="0." EquaMax="255." EquaInit="0"></EquaItem>
+					<EquaItem EquaChnl="2" EquaMode="1" EquaMin="0." EquaMax="255." EquaInit="0"></EquaItem>
+				</ScalEqua>
+				<HiddenFlags>
+					<Channel IsHidden="0"></Channel>
+					<Channel IsHidden="0"></Channel>
+					<Channel IsHidden="0"></Channel>
+				</HiddenFlags>
+			</RndrCMix>
+			<RndrBlock Orient3D="0" iSliceX="0" iSliceY="0"></RndrBlock>
+			<RndrROIMix HideAllROIs="0"></RndrROIMix>
+		</CDIAClientDcmt0>
+	</layer-settings>
+</ViewSttngs>
