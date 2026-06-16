@@ -46,11 +46,11 @@ This opens an editable, reactive session in your browser allowing the execution 
 
 ## 3. Workflow, in order
 Here's the data preparation half of the pipeline from raw inputs through to the segment feature table:
-![315135 Classification](output/classification_pipeline.png)
+![315135 Classification](output/data_prep_pipeline.png)
 
 
 That feature table then feeds the training and classification half:
-![315135 Classification](output/data_prep_pipeline.png)
+![315135 Classification](output/classification_pipeline.png)
 
 ## 4. Output
 
