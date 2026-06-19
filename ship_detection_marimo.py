@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.9"
+__generated_with = "0.23.10"
 app = marimo.App(width="medium")
 
 with app.setup:
@@ -75,7 +75,7 @@ def _():
     DSM_PATH      = BASE_DIR / "data_store" / "BE_DSM_27032011_315135_56865_UTM31N.tif"
     DTM_PATH      = BASE_DIR / "data_store" / "BE_DTM_315135_56865_generated.tif"
     nDSM_PATH     = BASE_DIR / "data_store" / "BE_nDSM_315135_56865.tif"
-    SEGMENTS_PATH = BASE_DIR / "segmentation_315135" / "300_315135_segmentation.shp"
+    SEGMENTS_PATH = BASE_DIR / "ecognition_segmentation" / "segmentation_315135" / "300_315135_segmentation.shp"
     SAMPLES_PATH  = BASE_DIR / "315135_samples" / "315135_sample_points.gpkg"
     OUTPUT_PATH   = BASE_DIR / "output" / "ships_detected.gpkg"
     return (
@@ -114,97 +114,177 @@ def _():
 
 @app.cell
 def _():
-    def generate_dtm(
-        las_path: Path,
-        dsm_path: Path,
-        dtm_path: Path,
-        interp_scale: float = 0.1,
-        flat_fallback_elev: float = 40.70,
-        noise_std_threshold: float = 1.0,
-        max_ground_points: int = 200_000,
-    ) -> str:
-        """Derive a bare-earth DTM from a LiDAR point cloud, matched to
-        dsm_path's grid, and write it to dtm_path. Returns a description of
-        the method actually used."""
-        _las = laspy.read(las_path)
-        _gx = _las.x[_las.classification == 2]
-        _gy = _las.y[_las.classification == 2]
-        _gz = _las.z[_las.classification == 2]
+    def generate_dtm(
 
-        if len(_gx) == 0:
-            _z_thresh = np.percentile(_las.z, 10)
-            _mask2    = _las.z <= _z_thresh
-            _gx, _gy, _gz = _las.x[_mask2], _las.y[_mask2], _las.z[_mask2]
+        las_path: Path,
 
-        with rasterio.open(dsm_path) as _s:
-            _H, _W = _s.shape
-            _left, _bottom, _right, _top = _s.bounds
-            _profile = _s.profile
+        dsm_path: Path,
 
-        if len(_gx) > max_ground_points:
-            _idx = np.random.choice(len(_gx), max_ground_points, replace=False)
-            _gx, _gy, _gz = _gx[_idx], _gy[_idx], _gz[_idx]
+        dtm_path: Path,
 
-        _H_lo, _W_lo = max(int(_H * interp_scale), 2), max(int(_W * interp_scale), 2)
-        _xs_lo = np.linspace(_left, _right, _W_lo)
-        _ys_lo = np.linspace(_top, _bottom, _H_lo)
-        _gx_lo, _gy_lo = np.meshgrid(_xs_lo, _ys_lo)
+        interp_scale: float = 0.1,
 
-        _dtm_lo = griddata(
-            np.column_stack([_gx, _gy]), _gz,
-            (_gx_lo, _gy_lo), method="linear", fill_value=np.nan
-        )
+        flat_fallback_elev: float = 40.70,
 
-        _nan_mask_lo = np.isnan(_dtm_lo)
-        if _nan_mask_lo.any():
-            _fill_idx = scipy.ndimage.distance_transform_edt(
-                _nan_mask_lo, return_distances=False, return_indices=True
-            )
-            _dtm_filled_lo = _dtm_lo[tuple(_fill_idx)]
-        else:
-            _dtm_filled_lo = _dtm_lo
+        noise_std_threshold: float = 1.0,
 
-        _dtm_std = float(np.std(_dtm_filled_lo))
-        if _dtm_std > noise_std_threshold:
-            _dtm_final  = np.full((_H, _W), fill_value=flat_fallback_elev, dtype=np.float32)
-            _method_str = f"Flat DTM at {flat_fallback_elev}m (interpolation noisy)"
-        else:
-            _zoom_factors = (_H / _dtm_filled_lo.shape[0], _W / _dtm_filled_lo.shape[1])
-            _dtm_final = scipy.ndimage.zoom(_dtm_filled_lo, _zoom_factors, order=1).astype(np.float32)
-            if _dtm_final.shape != (_H, _W):
-                _tmp = np.full((_H, _W), float(_dtm_final.mean()), dtype=np.float32)
-                _h_c, _w_c = min(_H, _dtm_final.shape[0]), min(_W, _dtm_final.shape[1])
-                _tmp[:_h_c, :_w_c] = _dtm_final[:_h_c, :_w_c]
-                _dtm_final = _tmp
-            _method_str = "Interpolated from LiDAR (low-res, upsampled)"
+        max_ground_points: int = 200_000,
 
-        _profile.update(dtype="float32", count=1, compress="lzw")
-        dtm_path.parent.mkdir(parents=True, exist_ok=True)
-        with rasterio.open(dtm_path, "w", **_profile) as _dst:
-            _dst.write(_dtm_final, 1)
+    ) -> str:
 
-        return f"{_method_str}. Range: {_dtm_final.min():.2f} to {_dtm_final.max():.2f} m"
+        """Derive a bare-earth DTM from a LiDAR point cloud, matched to
 
-    def generate_ndsm(
-        dsm_path: Path,
-        dtm_path: Path,
-        ndsm_path: Path,
-        clip_min: float = 0.0,
-        clip_max: float = 30.0,
-    ) -> str:
-        """Compute nDSM = clip(DSM - DTM, clip_min, clip_max), matched to
-        dsm_path's grid, and write it to ndsm_path."""
-        with rasterio.open(dsm_path) as _s:
-            _dsm = _s.read(1).astype(np.float32)
-            _profile = _s.profile
-        with rasterio.open(dtm_path) as _s:
-            _dtm = _s.read(1, out_shape=_dsm.shape, resampling=Resampling.bilinear).astype(np.float32)
+        dsm_path's grid, and write it to dtm_path. Returns a description of
 
-        _ndsm = np.clip(_dsm - _dtm, clip_min, clip_max)
-        _profile.update(dtype="float32", count=1)
-        ndsm_path.parent.mkdir(parents=True, exist_ok=True)
-        with rasterio.open(ndsm_path, "w", **_profile) as _dst:
-            _dst.write(_ndsm, 1)
+        the method actually used."""
+
+        _las = laspy.read(las_path)
+
+        _gx = _las.x[_las.classification == 2]
+
+        _gy = _las.y[_las.classification == 2]
+
+        _gz = _las.z[_las.classification == 2]
+
+
+        if len(_gx) == 0:
+
+            _z_thresh = np.percentile(_las.z, 10)
+
+            _mask2    = _las.z <= _z_thresh
+
+            _gx, _gy, _gz = _las.x[_mask2], _las.y[_mask2], _las.z[_mask2]
+
+
+        with rasterio.open(dsm_path) as _s:
+
+            _H, _W = _s.shape
+
+            _left, _bottom, _right, _top = _s.bounds
+
+            _profile = _s.profile
+
+
+        if len(_gx) > max_ground_points:
+
+            _idx = np.random.choice(len(_gx), max_ground_points, replace=False)
+
+            _gx, _gy, _gz = _gx[_idx], _gy[_idx], _gz[_idx]
+
+
+        _H_lo, _W_lo = max(int(_H * interp_scale), 2), max(int(_W * interp_scale), 2)
+
+        _xs_lo = np.linspace(_left, _right, _W_lo)
+
+        _ys_lo = np.linspace(_top, _bottom, _H_lo)
+
+        _gx_lo, _gy_lo = np.meshgrid(_xs_lo, _ys_lo)
+
+
+        _dtm_lo = griddata(
+
+            np.column_stack([_gx, _gy]), _gz,
+
+            (_gx_lo, _gy_lo), method="linear", fill_value=np.nan
+
+        )
+
+
+        _nan_mask_lo = np.isnan(_dtm_lo)
+
+        if _nan_mask_lo.any():
+
+            _fill_idx = scipy.ndimage.distance_transform_edt(
+
+                _nan_mask_lo, return_distances=False, return_indices=True
+
+            )
+
+            _dtm_filled_lo = _dtm_lo[tuple(_fill_idx)]
+
+        else:
+
+            _dtm_filled_lo = _dtm_lo
+
+
+        _dtm_std = float(np.std(_dtm_filled_lo))
+
+        if _dtm_std > noise_std_threshold:
+
+            _dtm_final  = np.full((_H, _W), fill_value=flat_fallback_elev, dtype=np.float32)
+
+            _method_str = f"Flat DTM at {flat_fallback_elev}m (interpolation noisy)"
+
+        else:
+
+            _zoom_factors = (_H / _dtm_filled_lo.shape[0], _W / _dtm_filled_lo.shape[1])
+
+            _dtm_final = scipy.ndimage.zoom(_dtm_filled_lo, _zoom_factors, order=1).astype(np.float32)
+
+            if _dtm_final.shape != (_H, _W):
+
+                _tmp = np.full((_H, _W), float(_dtm_final.mean()), dtype=np.float32)
+
+                _h_c, _w_c = min(_H, _dtm_final.shape[0]), min(_W, _dtm_final.shape[1])
+
+                _tmp[:_h_c, :_w_c] = _dtm_final[:_h_c, :_w_c]
+
+                _dtm_final = _tmp
+
+            _method_str = "Interpolated from LiDAR (low-res, upsampled)"
+
+
+        _profile.update(dtype="float32", count=1, compress="lzw")
+
+        dtm_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with rasterio.open(dtm_path, "w", **_profile) as _dst:
+
+            _dst.write(_dtm_final, 1)
+
+
+        return f"{_method_str}. Range: {_dtm_final.min():.2f} to {_dtm_final.max():.2f} m"
+
+
+    def generate_ndsm(
+
+        dsm_path: Path,
+
+        dtm_path: Path,
+
+        ndsm_path: Path,
+
+        clip_min: float = 0.0,
+
+        clip_max: float = 30.0,
+
+    ) -> str:
+
+        """Compute nDSM = clip(DSM - DTM, clip_min, clip_max), matched to
+
+        dsm_path's grid, and write it to ndsm_path."""
+
+        with rasterio.open(dsm_path) as _s:
+
+            _dsm = _s.read(1).astype(np.float32)
+
+            _profile = _s.profile
+
+        with rasterio.open(dtm_path) as _s:
+
+            _dtm = _s.read(1, out_shape=_dsm.shape, resampling=Resampling.bilinear).astype(np.float32)
+
+
+        _ndsm = np.clip(_dsm - _dtm, clip_min, clip_max)
+
+        _profile.update(dtype="float32", count=1)
+
+        ndsm_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with rasterio.open(ndsm_path, "w", **_profile) as _dst:
+
+            _dst.write(_ndsm, 1)
+
 
         return f"nDSM range: {_ndsm.min():.2f} to {_ndsm.max():.2f} m"
 
@@ -225,15 +305,24 @@ def _():
 
 @app.cell
 def _(DSM_PATH, DTM_PATH, LAS_PATH, gen_dtm_button, generate_dtm):
-    mo.stop(
-        DTM_PATH.exists() and not gen_dtm_button.value,
-        mo.md("DTM already exists. Click the button to regenerate.")
-    )
-    mo.stop(
-        not DTM_PATH.exists() and not gen_dtm_button.value,
-        mo.md("DTM not found. Click the button to generate DTM from LiDAR.")
-    )
-    _msg = generate_dtm(LAS_PATH, DSM_PATH, DTM_PATH)
+    mo.stop(
+
+        DTM_PATH.exists() and not gen_dtm_button.value,
+
+        mo.md("DTM already exists. Click the button to regenerate.")
+
+    )
+
+    mo.stop(
+
+        not DTM_PATH.exists() and not gen_dtm_button.value,
+
+        mo.md("DTM not found. Click the button to generate DTM from LiDAR.")
+
+    )
+
+    _msg = generate_dtm(LAS_PATH, DSM_PATH, DTM_PATH)
+
     mo.md(f"Generated DTM has been saved. {_msg}")
     return
 
@@ -421,7 +510,8 @@ def _():
 
 @app.cell
 def _(DSM_PATH, DTM_PATH, generate_ndsm, nDSM_PATH):
-    _msg = generate_ndsm(DSM_PATH, DTM_PATH, nDSM_PATH)
+    _msg = generate_ndsm(DSM_PATH, DTM_PATH, nDSM_PATH)
+
     mo.md(f"nDSM exported to {nDSM_PATH}. {_msg}")
     return
 
@@ -714,9 +804,12 @@ def _():
 
 @app.cell
 def _(image_data, scale_slider, transform):
-    _sf      = scale_slider.value
-    ds_image = scipy.ndimage.zoom(image_data, zoom=(1, _sf, _sf), order=0) if _sf < 1.0 else image_data
-    ds_transform = transform * Affine.scale(1 / _sf)
+    _sf      = scale_slider.value
+
+    ds_image = scipy.ndimage.zoom(image_data, zoom=(1, _sf, _sf), order=0) if _sf < 1.0 else image_data
+
+    ds_transform = transform * Affine.scale(1 / _sf)
+
     mo.md(f"Working resolution: {ds_image.shape}")
     return ds_image, ds_transform
 
@@ -1292,7 +1385,6 @@ def _():
 def _(BASE_DIR):
     RGB_PATH_NEW      = BASE_DIR / "data_store" / "BE_ORTHO_27032011_315140_56865_UTM31N.tif"
     SEGMENTS_PATH_NEW      = BASE_DIR / "ecognition_segmentation" / "segmentation_315140" / "300_315140_segmentation.shp"
-
     return RGB_PATH_NEW, SEGMENTS_PATH_NEW
 
 
@@ -1376,7 +1468,8 @@ def _(BASE_DIR):
 
 @app.cell
 def _():
-    gen_dtm_button_new = mo.ui.run_button(label="Generate DTM for tile 315140 (run once)")
+    gen_dtm_button_new = mo.ui.run_button(label="Generate DTM for tile 315140 (run once)")
+
     gen_dtm_button_new
     return (gen_dtm_button_new,)
 
