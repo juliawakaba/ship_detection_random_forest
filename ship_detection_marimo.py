@@ -109,11 +109,6 @@ def _():
 
 @app.cell
 def _():
-    return
-
-
-@app.cell
-def _():
     def generate_dtm(
 
         las_path: Path,
@@ -296,11 +291,6 @@ def _():
     gen_dtm_button = mo.ui.run_button(label="Generate DTM from LiDAR (just run once)")
     gen_dtm_button
     return (gen_dtm_button,)
-
-
-@app.cell
-def _():
-    return
 
 
 @app.cell
@@ -552,7 +542,7 @@ def _(DSM_PATH, DTM_PATH, RGB_PATH):
     ndsm_scaled = ((ndsm_raw / 30.0) * 255).astype(np.uint8)
     image_data  = np.vstack([rgb, ndsm_scaled[np.newaxis]])
     mo.md(f"Stack shape: {image_data.shape} (bands, H, W) | CRS: {crs}")
-    return crs, image_data, transform
+    return image_data, transform
 
 
 @app.cell(hide_code=True)
@@ -1164,8 +1154,8 @@ def _(vessels):
     return
 
 
-@app.cell
-def _(vessels):
+app._unparsable_cell(
+    r"""
     _sw = vessels[vessels["classification"] == "SHIP_WATER"]["ndsm_mean"].dropna()
     _sd = vessels[vessels["classification"] == "SHIP_DOCK"]["ndsm_mean"].dropna()
 
@@ -1196,12 +1186,14 @@ def _(vessels):
     _ax_h[2].hist(_sd, bins=8, color="#f4a261", alpha=0.8, label="SHIP_DOCK",  edgecolor="white")
     _ax_h[2].set_xlabel("nDSM mean (m)"); _ax_h[2].set_ylabel("Count")
     _ax_h[2].set_title("Height Distribution by Class (~3m=water, ~8m=dock)")
-    _ax_h[2].set_xlim(0, 22); _ax_h[2].legend()
+    _ax_h[2].set_xlim(0, 22); _ax_h[2].legend()j
 
 
     plt.tight_layout()
     plt.gca()
-    return
+    """,
+    name="_"
+)
 
 
 @app.cell
@@ -1307,44 +1299,7 @@ def _(filtered):
 @app.cell(hide_code=True)
 def _():
     mo.md(r"""
-    ## 16 · Full-Resolution Run
-
-    When happy with parameters, click below to re-run segmentation and classification
-    at full resolution. This may take 5-15 minutes.
-    """)
-    return
-
-
-@app.cell
-def _():
-    btn_full = mo.ui.run_button(label="Run full-resolution classification")
-    btn_full
-    return (btn_full,)
-
-
-@app.cell
-def _(btn_full, clf, crs, image_data, selected_features, transform):
-    mo.stop(not btn_full.value, mo.md("Click button to run at full resolution."))
-    _mgr_full = ns.LayerManager()
-    _seg_full = ns.SlicSegmentation(scale=25, compactness=0.3).execute(
-        image_data, transform, crs, layer_manager=_mgr_full, layer_name="Full_Seg"
-    )
-    _seg_full.attach_function(ns.attach_ndvi, name="ndwi",
-        nir_column="band_2_mean", red_column="band_1_mean", output_column="NDWI")
-    _seg_full.attach_function(ns.attach_shape_metrics, name="shape_metrics")
-    _seg_full.objects["classification"] = clf.predict(_seg_full.objects[selected_features].fillna(0))
-    _clf = ns.Layer(name="Full_RF", layer_type="classification")
-    _clf.objects = _seg_full.objects.copy()
-    _c = _clf.objects["classification"].value_counts()
-    _s = " | ".join([f"{k}: {v}" for k, v in _c.items()])
-    mo.md(f"Full-resolution classification complete: {_s}")
-    return
-
-
-@app.cell(hide_code=True)
-def _():
-    mo.md(r"""
-    ## 17 · Export to GeoPackage
+    ## 16 · Export to GeoPackage
 
     Exports confirmed vessel polygons with all attributes.
     Open the gpkg in QGIS for cartography and final quality assessment.
