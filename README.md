@@ -78,6 +78,4 @@ Project steps have been documented here:
 ## 5. Attribution
 This repository was developed as part of the Application Development (Earth Observation) class for the CDE master program.
 
-Primary Author: Julia Wakaba
-
 copyright © 2026 Summer Semester PLUS university
