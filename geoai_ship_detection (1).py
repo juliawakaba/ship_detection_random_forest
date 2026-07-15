@@ -117,11 +117,6 @@ ax.axis("off")
 plt.tight_layout()
 plt.show()
 
-# Check how many vertices each polygon has
-for i, geom in enumerate(gdf_masked.geometry.head(5)):
-    coords = list(geom.exterior.coords)
-    print(f"Ship {i}: {len(coords)} vertices")
-
 """Approach 2 : Downsampling the ortho imagery to 15cm"""
 
 resampled_path = "ships_15cm.tif"
